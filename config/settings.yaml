@@ -1,0 +1,135 @@
+# ========================================
+# 全流程系统测试Agent - 全局配置
+# ========================================
+
+# --- LLM 配置 ---
+llm:
+  # 当前: 阿里云百炼 Token Plan (团队版)
+  provider: "bailian-tokenplan"
+  # Token Plan 专属 base_url，带地域。换地域改 cn-beijing 即可
+  api_base: "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+  api_key: "${LLM_API_KEY}"
+  # Token Plan 可用文本模型:
+  #   qwen3.8-max / qwen3.7-max / qwen3.6-plus / qwen3.8-flash
+  #   deepseek-v4-pro / deepseek-v3.2 / glm-5.2 / kimi-k2.7-code / MiniMax-M2.5
+  model: "qwen3.8-max"
+  temperature: 0.3
+  max_tokens: 8192
+  timeout: 180
+  # 深度思考模式：false=快速(推荐)，true=更强推理但慢很多
+  enable_thinking: false
+
+  # --- 备用配置 (取消注释即可切换) ---
+  # provider: "bailian-standard"   # 百炼按量计费 (标准 sk- 密钥)
+  # api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  # model: "qwen-plus"
+  #
+  # provider: "deepseek"
+  # api_base: "https://api.deepseek.com"
+  # model: "deepseek-chat"
+
+# --- 需求分析配置 ---
+requirement_analysis:
+  # 需求来源: file(文件), text(文本输入), url(网页)
+  source_type: "file"
+  # 支持的文件格式
+  supported_formats: [".txt", ".md", ".docx", ".pdf"]
+  # 分析深度: basic, detailed, comprehensive
+  analysis_depth: "comprehensive"
+
+# --- 测试用例生成配置 ---
+testcase:
+  # 默认优先级分布
+  priority_distribution:
+    P0: 0.10  # 核心功能
+    P1: 0.30  # 重要功能
+    P2: 0.40  # 一般功能
+    P3: 0.20  # 低优先级
+  # 用例类型
+  case_types:
+    - "功能测试"
+    - "边界值测试"
+    - "异常测试"
+    - "兼容性测试"
+    - "安全测试"
+    - "性能相关"
+  # 设计方法
+  design_methods:
+    - "等价类划分"
+    - "边界值分析"
+    - "判定表"
+    - "状态迁移"
+    - "场景法"
+    - "错误推测"
+
+# --- Excel 输出配置 ---
+excel:
+  output_dir: "./output"
+  # 表头定义
+  headers:
+    - "序号"
+    - "用例编号"
+    - "模块"
+    - "优先级"
+    - "类型"
+    - "用例标题"
+    - "前置条件"
+    - "操作步骤"
+    - "预期结果"
+    - "实际结果"
+    - "备注"
+    - "关联需求"
+  # 列宽配置 (字符数)
+  column_widths:
+    序号: 8
+    用例编号: 15
+    模块: 15
+    优先级: 8
+    类型: 12
+    用例标题: 40
+    前置条件: 30
+    操作步骤: 50
+    预期结果: 40
+    实际结果: 20
+    备注: 25
+    关联需求: 15
+  # 样式
+  style:
+    header_fill: "4472C4"
+    header_font_color: "FFFFFF"
+    header_font_bold: true
+    p0_fill: "FF4444"
+    p1_fill: "FF9900"
+    p2_fill: "FFDD00"
+    p3_fill: "99CC00"
+    border_style: "thin"
+    auto_filter: true
+    freeze_panes: "A2"
+
+# --- API 测试配置 (预留) ---
+api_test:
+  base_url: ""
+  timeout: 30
+  headers: {}
+
+# --- UI 测试配置 (预留) ---
+ui_test:
+  browser: "chromium"
+  headless: true
+  screenshot_dir: "./output/screenshots"
+  viewport:
+    width: 1920
+    height: 1080
+
+# --- 性能测试配置 (预留) ---
+perf_test:
+  users: 100
+  spawn_rate: 10
+  duration: 300
+
+# --- 日志配置 ---
+logging:
+  level: "INFO"
+  file: "./output/agent.log"
+  rotation: "10 MB"
+  retention: "7 days"

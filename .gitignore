@@ -1,0 +1,42 @@
+# ============================================
+# Python 接口自动化测试项目 - Git 忽略规则
+# ============================================
+
+# --- 密钥/凭证（绝不提交!）---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*token*.txt
+*Token*.txt
+secret*
+
+# --- Python 缓存/虚拟环境 ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- 测试产物/报告（可重新生成）---
+output/
+report/
+screenshots/
+*.log
+*.xlsx
+!output/回归报告/接口回归缺陷发现_*.md
+
+# --- 系统文件 ---
+.DS_Store
+Thumbs.db
+desktop.ini
