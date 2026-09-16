@@ -137,29 +137,51 @@ BUILTIN_SCENARIOS = {
 
 
 # ==============================================================================
-# ③ 全量场景自动加载: 同目录或上级 api_test/ 存在 regression_scenarios.py 时使用131条全量
+# ③ 场景自动加载: 全量聚合 / 按平台分离(agent|rag) / 内置冒烟兜底
 # ==============================================================================
-def load_scenarios(use_builtin=True):
-    """优先加载全量场景表; 找不到时回退内置冒烟场景. 返回 (scenarios_dict, source_str)"""
+def _load_module(name, path):
+    """从指定路径动态加载模块, 返回模块或 None"""
+    if not os.path.exists(path):
+        return None
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(name, path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+def load_scenarios(use_builtin=True, platform=None):
+    """加载场景. platform: None=全量 | 'agent'=智能体 | 'rag'=知识库
+    返回 (scenarios_dict, source_str)"""
     here = os.path.dirname(os.path.abspath(__file__))
-    cand = [
-        os.path.join(here, "regression_scenarios.py"),
-        os.path.join(here, "..", "api_test", "regression_scenarios.py"),
-        os.path.join(here, "api_test", "regression_scenarios.py"),
-    ]
-    for c in cand:
-        if os.path.exists(c):
-            try:
-                import importlib.util
-                spec = importlib.util.spec_from_file_location("regression_scenarios", c)
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                sc = getattr(mod, "SCENARIOS", {})
-                if sc:
-                    return sc, f"全量场景 {len(sc)} 条 <- {os.path.basename(c)}"
-            except Exception as e:
-                print(f"[warn] 加载全量场景失败({e}), 使用内置场景")
-                break
+
+    # 1) 指定平台: 优先独立场景文件
+    if platform in ("agent", "rag"):
+        fname = f"scenarios_{platform}.py"
+        mod = _load_module(fname[:-3], os.path.join(here, fname))
+        if mod and getattr(mod, "SCENARIOS", {}):
+            label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)"}[platform]
+            return mod.SCENARIOS, f"{label} 独立场景 {len(mod.SCENARIOS)} 条 <- {fname}"
+        # 独立文件缺失: 从全量过滤
+        full, fs = load_scenarios(use_builtin=False, platform=None)
+        if full:
+            pre = "Agent" if platform == "agent" else "RAG"
+            sc = {k: v for k, v in full.items() if k.startswith(pre)}
+            label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)"}[platform]
+            return sc, f"{label} 场景 {len(sc)} 条 (自全量过滤)"
+        return {}, "无场景"
+
+    # 2) 全量: 优先聚合入口 regression_scenarios.py
+    for c in [os.path.join(here, "regression_scenarios.py"),
+              os.path.join(here, "..", "api_test", "regression_scenarios.py")]:
+        mod = _load_module("regression_scenarios", c)
+        if mod and getattr(mod, "SCENARIOS", {}):
+            return mod.SCENARIOS, f"全量场景 {len(mod.SCENARIOS)} 条 <- {os.path.basename(c)}"
+
+    # 3) 内置冒烟兜底
     if use_builtin:
         return BUILTIN_SCENARIOS, f"内置冒烟场景 {len(BUILTIN_SCENARIOS)} 条 (未找到全量场景表)"
     return {}, "无场景"
@@ -494,6 +516,8 @@ def main():
     ap.add_argument("--readonly", action="store_true", default=None, help="full模式只读")
     ap.add_argument("--no-readonly", action="store_true", help="允许写操作(full模式)")
     ap.add_argument("--prefix", default=None, help="按前缀过滤, 如 RAG/Agent")
+    ap.add_argument("--platform", choices=["agent", "rag"], default=None,
+                    help="只跑指定平台: agent=智能体Dify | rag=知识库RagFlow (独立场景文件)")
     ap.add_argument("--case", default=None, help="单条用例, 如 Agent-012")
     ap.add_argument("--timeout", type=int, default=None)
     ap.add_argument("--delay", type=float, default=None)
@@ -504,15 +528,18 @@ def main():
         v = getattr(args, k)
         if v not in (None, ""):
             CONFIG[k] = v
+    if args.platform:
+        CONFIG["platform"] = args.platform
     if args.readonly:
         CONFIG["readonly"] = True
     if args.no_readonly:
         CONFIG["readonly"] = False
     mode = CONFIG["mode"]
 
-    scenarios, source = load_scenarios(CONFIG["use_builtin"])
+    scenarios, source = load_scenarios(CONFIG["use_builtin"], platform=CONFIG.get("platform"))
     print("=" * 70)
-    print(f" 接口自动化回归  |  模式: {mode}{'(只读)' if mode=='full' and CONFIG['readonly'] else ''}")
+    plat = f"平台: {CONFIG.get('platform', '全部(Agent+RAG)')}  |  "
+    print(f" 接口自动化回归  |  {plat}模式: {mode}{'(只读)' if mode=='full' and CONFIG['readonly'] else ''}")
     print(f" 场景: {source}")
     print(f" Dify  : {CONFIG['dify_base']}  Token {'已提供' if CONFIG['dify_token'] else '未提供'}")
     print(f" RagFlow: {CONFIG['ragflow_base']}  Key  {'已提供' if CONFIG['ragflow_token'] else '未提供'}")
