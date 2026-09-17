@@ -43,6 +43,13 @@ for p in paths:
         dedup[key] = p
 paths = sorted(dedup)
 
+# 排除纯前缀路径: JS 中仅作为 concat 前缀片段(后面拼 {id}/子路径), 裸路径 404 属预期
+# 依据证据: /data_source 是 upload_file 前缀, /data_source/source 是 createDataSource 拼{id}前缀,
+#           /data_subject 是 syncSubjectKnowledge 拼{id}前缀 —— 均非可独立调用的完整接口
+PREFIX_ONLY = {"/data_source", "/data_source/source", "/data_subject"}
+paths = [p for p in paths if p not in PREFIX_ONLY]
+print(f"排除前缀路径后: {len(paths)} 条")
+
 # 模块中文名
 MOD = {
     "data_source": "数据源", "data_model": "数据模型", "data_subject": "数据主题",

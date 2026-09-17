@@ -60,85 +60,76 @@ SCENARIOS = {
     "SJZL-015": {"title": "数据模型-模型关系保存", "module": "数据模型", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_model/relation", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法PUT)"},
     ]},
-    "SJZL-016": {"title": "数据源-data_source", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
-        {"method": "GET", "path": "/data_source", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
-    ]},
-    "SJZL-017": {"title": "数据源-source", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
-        {"method": "GET", "path": "/data_source/source", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
-    ]},
-    "SJZL-018": {"title": "数据源-data_sources", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-016": {"title": "数据源-data_sources", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/source/data_sources", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-019": {"title": "数据源-数据源列表", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-017": {"title": "数据源-数据源列表", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/source/data_sources/all", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-020": {"title": "数据源-时间表达式示例", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-018": {"title": "数据源-时间表达式示例", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/source/datetime/examples", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-021": {"title": "数据源-query", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-019": {"title": "数据源-query", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/source/query", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-022": {"title": "数据源-remote", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-020": {"title": "数据源-remote", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/source/remote", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-023": {"title": "数据源-tables", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-021": {"title": "数据源-tables", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/source/tables", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-024": {"title": "数据源-storage_types", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-022": {"title": "数据源-storage_types", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/storage_types", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-025": {"title": "数据源-数据源类型", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-023": {"title": "数据源-数据源类型", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/support/data_source_types", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-026": {"title": "数据源-数据库类型", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-024": {"title": "数据源-数据库类型", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/support/databases_types", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-027": {"title": "数据源-字段类型", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-025": {"title": "数据源-字段类型", "module": "数据源", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_source/support/table_fields", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-028": {"title": "数据主题-data_subject", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
-        {"method": "GET", "path": "/data_subject", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
-    ]},
-    "SJZL-029": {"title": "数据主题-subject", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-026": {"title": "数据主题-subject", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_subject/subject", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-030": {"title": "数据主题-主题列表(注意DELETE批量删除存在)", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-027": {"title": "数据主题-主题列表(注意DELETE批量删除存在)", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_subject/subject/all", "expect": ["200", "400", "405"], "desc": "读取列表/枚举 [DELETE批量删除风险!! 仅GET探测]"},
     ]},
-    "SJZL-031": {"title": "数据主题-import", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-028": {"title": "数据主题-import", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_subject/subject/import", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-032": {"title": "数据主题-主题管理动作", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-029": {"title": "数据主题-主题管理动作", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_subject/subject/manager_actions/all", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-033": {"title": "数据主题-rollback", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-030": {"title": "数据主题-rollback", "module": "数据主题", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/data_subject/subject/rollback", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-034": {"title": "任务管理-tasks", "module": "任务管理", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-031": {"title": "任务管理-tasks", "module": "任务管理", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/task_manager/tasks", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-035": {"title": "加工方案-聚合类型", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-032": {"title": "加工方案-聚合类型", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/aggs/all", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-036": {"title": "加工方案-自定义代码保存", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-033": {"title": "加工方案-自定义代码保存", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/custom_codes", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法POST)"},
     ]},
-    "SJZL-037": {"title": "加工方案-表达式校验", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-034": {"title": "加工方案-表达式校验", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/expression/check", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法POST)"},
     ]},
-    "SJZL-038": {"title": "加工方案-加工函数", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-035": {"title": "加工方案-加工函数", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/functions/all", "expect": ["200", "400", "405"], "desc": "读取列表/枚举"},
     ]},
-    "SJZL-039": {"title": "加工方案-generate_create_sql", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-036": {"title": "加工方案-generate_create_sql", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/join/generate_create_sql", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法?)"},
     ]},
-    "SJZL-040": {"title": "加工方案-加工方案保存", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-037": {"title": "加工方案-加工方案保存", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/plan", "expect": ["200", "400", "405"], "desc": "路由探测(真实方法PUT)"},
     ]},
-    "SJZL-041": {"title": "加工方案-加工方案列表(注意DELETE批量删除存在)", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-038": {"title": "加工方案-加工方案列表(注意DELETE批量删除存在)", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/plan/all", "expect": ["200", "400", "405"], "desc": "读取列表/枚举 [DELETE批量删除风险!! 仅GET探测]"},
     ]},
-    "SJZL-042": {"title": "加工方案-加工方案分页(注意DELETE批量删除存在)", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
+    "SJZL-039": {"title": "加工方案-加工方案分页(注意DELETE批量删除存在)", "module": "加工方案", "priority": "P1", "service": "dmwh", "steps": [
         {"method": "GET", "path": "/trans_plan/plan/list", "expect": ["200", "400", "405"], "desc": "读取列表/枚举 [DELETE批量删除风险!! 仅GET探测]"},
     ]},
 }
