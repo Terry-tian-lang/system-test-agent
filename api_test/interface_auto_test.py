@@ -38,18 +38,23 @@ except Exception:
 # ① 配置区 —— 在此处填入你的 Token / 地址 / 模式 (PyCharm 用户改这里!)
 # ==============================================================================
 CONFIG = {
-    # ---- 三个服务的基础地址 ----
+    # ---- 服务基础地址 ----
     "dify_base":     "http://ai-func.ibosssoft.com.cn",     # 智能体平台(魔改Dify)
     "ragflow_base":  "https://rag.bosssoft.com.cn",          # 知识库平台(RagFlow 生产地址)
     "cas_base":      "http://cas-func.ibosssoft.com.cn",    # CAS 单点登录
+    "dmwh_base":     "https://rag-runtime.bosssoft.com.cn/dmwh",  # 数据治理/数据库业务(生产 /dmwh API前缀)
 
-    # ---- Token / API Key ----
-    # 优先级: 命令行参数 > 环境变量(DIFY_TOKEN/RAGFLOW_TOKEN) > 本文件下方填入
+    # ---- Token / API Key / 会话凭据 ----
+    # 优先级: 命令行参数 > 环境变量(.env: DIFY_TOKEN/RAGFLOW_TOKEN/PROD_DMWH_*) > 下方填入
     # 密钥不建议直接写死在代码里(会随 git 提交); 推荐放项目根目录 .env:
     #   RAGFLOW_TOKEN=ragflow-xxxx
     #   DIFY_TOKEN=xxxx
+    #   PROD_DMWH_AUTH=xxxx
+    #   PROD_DMWH_COOKIE=session=xxxx
     "dify_token":     "",
     "ragflow_token":  "",
+    "dmwh_auth":      "",    # 数据治理页面会话 Authorization
+    "dmwh_cookie":    "",    # 数据治理页面会话 Cookie
 
     # ---- 运行模式 ----
     "mode":       "verify",  # verify=路由可达性(免Token) | full=业务回归(需Token)
@@ -177,23 +182,25 @@ def _load_module(name, path):
 
 
 def load_scenarios(use_builtin=True, platform=None):
-    """加载场景. platform: None=全量 | 'agent'=智能体 | 'rag'=知识库
+    """加载场景. platform: None=全量 | 'agent'=智能体 | 'rag'=知识库 | 'shujuzhili'=数据治理
     返回 (scenarios_dict, source_str)"""
     here = os.path.dirname(os.path.abspath(__file__))
 
     # 1) 指定平台: 优先独立场景文件
-    if platform in ("agent", "rag"):
+    if platform in ("agent", "rag", "shujuzhili"):
         fname = f"scenarios_{platform}.py"
         mod = _load_module(fname[:-3], os.path.join(here, fname))
         if mod and getattr(mod, "SCENARIOS", {}):
-            label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)"}[platform]
+            label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)",
+                     "shujuzhili": "数据治理(shujuzhili)"}[platform]
             return mod.SCENARIOS, f"{label} 独立场景 {len(mod.SCENARIOS)} 条 <- {fname}"
         # 独立文件缺失: 从全量过滤
         full, fs = load_scenarios(use_builtin=False, platform=None)
         if full:
-            pre = "Agent" if platform == "agent" else "RAG"
+            pre = {"agent": "Agent", "rag": "RAG", "shujuzhili": "SJZL"}[platform]
             sc = {k: v for k, v in full.items() if k.startswith(pre)}
-            label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)"}[platform]
+            label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)",
+                     "shujuzhili": "数据治理(shujuzhili)"}[platform]
             return sc, f"{label} 场景 {len(sc)} 条 (自全量过滤)"
         return {}, "无场景"
 
@@ -240,8 +247,16 @@ def send_request(method, url, headers, body=None, timeout=15):
         return -1, str(e)
 
 
-def build_headers(service, dify_token, ragflow_token):
+def build_headers(service, dify_token, ragflow_token, cfg=None):
     h = {"User-Agent": "Mozilla/5.0 (InterfaceAutoTest)", "Accept": "application/json"}
+    if service == "dmwh":
+        # 数据治理(/dmwh): 页面会话认证 = Authorization + Cookie
+        cfg = cfg or {}
+        if cfg.get("dmwh_auth"):
+            h["Authorization"] = cfg["dmwh_auth"]
+        if cfg.get("dmwh_cookie"):
+            h["Cookie"] = cfg["dmwh_cookie"]
+        return h
     tok = ragflow_token if service == "ragflow" else dify_token
     if tok:
         h["Authorization"] = f"Bearer {tok}"
@@ -272,14 +287,17 @@ def judge_step(service, status, resp_text, step, mode):
     if mode == "verify":
         if status == 404 or status == -1:
             return "FAIL", f"路由不存在/网络异常 实得{status}"
-        if status in (401, 403) or 200 <= status < 400 or status in (405, 503):
-            note = {401: "需认证", 403: "禁止访问", 405: "方法待修正", 503: "功能禁用"}.get(status, "")
+        if status in (401, 403) or 200 <= status <= 400 or status in (405, 503):
+            note = {401: "需认证", 403: "禁止访问", 405: "方法待修正",
+                    400: "参数校验(路由存在)", 503: "功能禁用"}.get(status, "")
             return "PASS", f"实得{status} 路由存在{('('+note+')') if note else ''}"
+        if status == 500:
+            return "BLOCKED", "服务端异常(500) 路由可达"
         return "FAIL", f"意外状态 {status}"
 
     # ---- full 模式 ----
-    # RagFlow 域: HTTP 200 但业务 code 才代表真实结果
-    if service == "ragflow" and resp_text:
+    # RagFlow / 数据治理(dmwh) 域: HTTP 200 但业务 code 才代表真实结果
+    if service in ("ragflow", "dmwh") and resp_text:
         try:
             d = json.loads(resp_text)
             if isinstance(d, dict) and isinstance(d.get("code"), (int, str)):
@@ -296,6 +314,11 @@ def judge_step(service, status, resp_text, step, mode):
                     if "405" in msg:
                         return "FAIL", f"路由方法错误(code=100/405): {msg}"
                     return "FAIL", f"业务错误(code=100): {msg}"
+                if service == "dmwh":
+                    if bc == "400":
+                        return "PASS", f"路由存在(参数校验 code=400): {msg}"
+                    if bc == "500":
+                        return "BLOCKED", f"业务异常(缺真实ID/资源 code=500): {msg}"
                 return "FAIL", f"业务错误(code={bc}): {msg}"
         except Exception:
             pass
@@ -415,7 +438,8 @@ def run_all(scenarios, cfg, ctx):
 def run_case(case_id, case, cfg, ctx):
     service = case.get("service", "dify")
     base = case.get("base") or (cfg["ragflow_base"] if service == "ragflow"
-                                else cfg["cas_base"] if service == "cas" else cfg["dify_base"])
+                                else cfg["cas_base"] if service == "cas"
+                                else cfg["dmwh_base"] if service == "dmwh" else cfg["dify_base"])
     steps = case.get("steps", [])
     step_results, executed = [], []
 
@@ -431,7 +455,7 @@ def run_case(case_id, case, cfg, ctx):
         t0 = time.time()
         try:
             status, text = send_request(method, url,
-                                        build_headers(service, cfg["dify_token"], cfg["ragflow_token"]),
+                                        build_headers(service, cfg["dify_token"], cfg["ragflow_token"], cfg),
                                         body=s.get("params"), timeout=cfg["timeout"])
         except Exception as e:
             status, text = -1, str(e)
@@ -552,8 +576,8 @@ def main():
     ap.add_argument("--readonly", action="store_true", default=None, help="full模式只读")
     ap.add_argument("--no-readonly", action="store_true", help="允许写操作(full模式)")
     ap.add_argument("--prefix", default=None, help="按前缀过滤, 如 RAG/Agent")
-    ap.add_argument("--platform", choices=["agent", "rag"], default=None,
-                    help="只跑指定平台: agent=智能体Dify | rag=知识库RagFlow (独立场景文件)")
+    ap.add_argument("--platform", choices=["agent", "rag", "shujuzhili"], default=None,
+                    help="只跑指定平台: agent=智能体Dify | rag=知识库RagFlow | shujuzhili=数据治理(生产/dmwh)")
     ap.add_argument("--case", default=None, help="单条用例, 如 Agent-012")
     ap.add_argument("--timeout", type=int, default=None)
     ap.add_argument("--delay", type=float, default=None)
@@ -569,6 +593,11 @@ def main():
         CONFIG["dify_token"] = os.environ["DIFY_TOKEN"].strip()
     if not CONFIG.get("ragflow_token") and os.environ.get("RAGFLOW_TOKEN"):
         CONFIG["ragflow_token"] = os.environ["RAGFLOW_TOKEN"].strip()
+    # 数据治理(生产): PROD_DMWH_AUTH / PROD_DMWH_COOKIE
+    if not CONFIG.get("dmwh_auth") and os.environ.get("PROD_DMWH_AUTH"):
+        CONFIG["dmwh_auth"] = os.environ["PROD_DMWH_AUTH"].strip()
+    if not CONFIG.get("dmwh_cookie") and os.environ.get("PROD_DMWH_COOKIE"):
+        CONFIG["dmwh_cookie"] = os.environ["PROD_DMWH_COOKIE"].strip()
     if args.platform:
         CONFIG["platform"] = args.platform
     if args.readonly:
@@ -579,11 +608,12 @@ def main():
 
     scenarios, source = load_scenarios(CONFIG["use_builtin"], platform=CONFIG.get("platform"))
     print("=" * 70)
-    plat = f"平台: {CONFIG.get('platform', '全部(Agent+RAG)')}  |  "
+    plat = f"平台: {CONFIG.get('platform', '全部(Agent+RAG+shujuzhili)')}  |  "
     print(f" 接口自动化回归  |  {plat}模式: {mode}{'(只读)' if mode=='full' and CONFIG['readonly'] else ''}")
     print(f" 场景: {source}")
     print(f" Dify  : {CONFIG['dify_base']}  Token {'已提供' if CONFIG['dify_token'] else '未提供'}")
     print(f" RagFlow: {CONFIG['ragflow_base']}  Key  {'已提供' if CONFIG['ragflow_token'] else '未提供'}")
+    print(f" 数据治理: {CONFIG['dmwh_base']} 会话 {'已提供' if CONFIG['dmwh_auth'] else '未提供'}")
     print("=" * 70)
 
     # 预取真实ID (full 模式)
