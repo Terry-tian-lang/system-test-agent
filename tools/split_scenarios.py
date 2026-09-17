@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """拆分 regression_scenarios.py 的 SCENARIOS 为:
    scenarios_agent.py -> SCENARIOS (Agent-xxx 部分)
@@ -91,7 +91,7 @@ PLATFORM_YAML = _THIS / "interfaces" / "ai_func_platform_api.yaml"
 # 默认 BASE 映射: 未指定 base 的步骤使用
 SERVICE_BASE = {
     "dify": "http://ai-func.ibosssoft.com.cn",
-    "ragflow": "http://rag-func.ibosssoft.com.cn",
+    "ragflow": "https://rag.bosssoft.com.cn",
     "cas": "http://cas-func.ibosssoft.com.cn",
 }
 

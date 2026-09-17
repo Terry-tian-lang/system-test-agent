@@ -1,4 +1,4 @@
-# ================================================================
+﻿# ================================================================
 # 平台接口清单 (多服务合并) - ibosssoft AI 平台
 # 架构: Dify(ai-func) + RagFlow(rag-func) + CAS(cas-func)
 # 认证: Dify=Bearer token; RagFlow='Authorization' Header; CAS=会话
@@ -14,7 +14,7 @@ platform:
       auth: "Authorization: Bearer <token>"
       note: 未认证 401 {'code':'unauthorized'}
     - name: rag-func (RagFlow 魔改)
-      base_url: http://rag-func.ibosssoft.com.cn
+      base_url: https://rag.bosssoft.com.cn
       auth: "Authorization: Bearer <api_key>"
       note: "未认证 code:0; 无效key code:109"
     - name: cas-func (CAS SSO)

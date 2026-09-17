@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 回归场景聚合入口 (全量 = Agent + RAG)
 数据实际存放:
@@ -22,7 +22,7 @@ PLATFORM_YAML = _THIS / "interfaces" / "ai_func_platform_api.yaml"
 # 默认 BASE 映射: 未指定 base 的步骤使用
 SERVICE_BASE = {
     "dify": "http://ai-func.ibosssoft.com.cn",
-    "ragflow": "http://rag-func.ibosssoft.com.cn",
+    "ragflow": "https://rag.bosssoft.com.cn",
     "cas": "http://cas-func.ibosssoft.com.cn",
 }
 

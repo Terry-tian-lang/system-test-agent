@@ -40,12 +40,16 @@ except Exception:
 CONFIG = {
     # ---- 三个服务的基础地址 ----
     "dify_base":     "http://ai-func.ibosssoft.com.cn",     # 智能体平台(魔改Dify)
-    "ragflow_base":  "http://rag-func.ibosssoft.com.cn",    # 知识库平台(魔改RagFlow)
+    "ragflow_base":  "https://rag.bosssoft.com.cn",          # 知识库平台(RagFlow 生产地址)
     "cas_base":      "http://cas-func.ibosssoft.com.cn",    # CAS 单点登录
 
-    # ---- Token / API Key (留空则跳过需要认证的 full 业务回归) ----
-    "dify_token":     "",    # Dify Bearer Token (想跑 Dify 业务回归时填入)
-    "ragflow_token":  "",    # RagFlow API Key (想跑 RagFlow 业务回归时填入)
+    # ---- Token / API Key ----
+    # 优先级: 命令行参数 > 环境变量(DIFY_TOKEN/RAGFLOW_TOKEN) > 本文件下方填入
+    # 密钥不建议直接写死在代码里(会随 git 提交); 推荐放项目根目录 .env:
+    #   RAGFLOW_TOKEN=ragflow-xxxx
+    #   DIFY_TOKEN=xxxx
+    "dify_token":     "",
+    "ragflow_token":  "",
 
     # ---- 运行模式 ----
     "mode":       "verify",  # verify=路由可达性(免Token) | full=业务回归(需Token)
@@ -59,6 +63,25 @@ CONFIG = {
     "use_builtin": True,
 }
 # ==============================================================================
+
+# 从项目根目录 .env 读取密钥 (轻量解析, 无第三方依赖; .env 已被 .gitignore 排除)
+def _load_dotenv():
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [os.path.join(here, "..", ".env"), os.path.join(here, ".env")]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                for line in open(p, encoding="utf-8"):
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+            except Exception:
+                pass
+
+
+_load_dotenv()
 
 # RagFlow 业务 code 语义: 详细判定见 _judge_ragflow
 RESULT_STYLE = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️", "BLOCKED": "🚫", "ERROR": "💥"}
@@ -343,7 +366,7 @@ def prefetch_ids(cfg):
                     ctx["dataset_id"] = data[0].get("id", "")
         except Exception:
             pass
-    # RagFlow 知识库
+    # RagFlow 知识库 + 文档
     if cfg["ragflow_token"]:
         try:
             code, txt = send_request("GET", cfg["ragflow_base"] + "/api/v1/datasets?page=1&page_size=5",
@@ -354,6 +377,19 @@ def prefetch_ids(cfg):
                 data = d.get("data") or []
                 if data:
                     ctx["rf_dataset_id"] = data[0].get("id", "")
+                    # 预取该库第一个文档ID (供 documents/{document_id}/... 步骤使用)
+                    try:
+                        code2, txt2 = send_request(
+                            "GET", cfg["ragflow_base"] + f"/api/v1/datasets/{ctx['rf_dataset_id']}/documents?page=1&page_size=1",
+                            build_headers("ragflow", cfg["dify_token"], cfg["ragflow_token"]),
+                            timeout=cfg["timeout"])
+                        if code2 == 200:
+                            d2 = json.loads(txt2)
+                            docs = ((d2.get("data") or {}).get("docs") or []) or []
+                            if docs:
+                                ctx["document_id"] = docs[0].get("id", "")
+                    except Exception:
+                        pass
         except Exception:
             pass
     return ctx
@@ -528,6 +564,11 @@ def main():
         v = getattr(args, k)
         if v not in (None, ""):
             CONFIG[k] = v
+    # 环境变量兜底 (命令行 > .env环境变量 > CONFIG内填写的值)
+    if not CONFIG.get("dify_token") and os.environ.get("DIFY_TOKEN"):
+        CONFIG["dify_token"] = os.environ["DIFY_TOKEN"].strip()
+    if not CONFIG.get("ragflow_token") and os.environ.get("RAGFLOW_TOKEN"):
+        CONFIG["ragflow_token"] = os.environ["RAGFLOW_TOKEN"].strip()
     if args.platform:
         CONFIG["platform"] = args.platform
     if args.readonly:

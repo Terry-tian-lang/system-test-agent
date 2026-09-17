@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """回归场景 - 智能体平台 (Agent-xxx, 74条)
 数据来源: 智能体平台开发态-主流程回归测试用例.xlsx
 由 tools/split_scenarios.py 从 regression_scenarios.py 拆分生成。
@@ -725,7 +725,7 @@ SCENARIOS = {
                    'tag': 'MIX',
                    'steps': [{'method': 'GET',
                               'path': '/api/v1/datasets',
-                              'base': 'http://rag-func.ibosssoft.com.cn',
+                              'base': 'https://rag.bosssoft.com.cn',
                               'expect': ['200'],
                               'expect_code': 200,
                               'desc': '跨平台跳转后可达'}]},
@@ -786,7 +786,7 @@ SCENARIOS = {
                    'note': '实测: 检索测试真实路由为 /api/v1/searchbots/retrieval_test (需kb_id)',
                    'steps': [{'method': 'POST',
                               'path': '/api/v1/searchbots/retrieval_test',
-                              'base': 'http://rag-func.ibosssoft.com.cn',
+                              'base': 'https://rag.bosssoft.com.cn',
                               'expect': ['200'],
                               'expect_code': 200,
                               'expect_any': [200],
@@ -804,7 +804,7 @@ SCENARIOS = {
                    'note': '实测: 检索测试真实路由为 /api/v1/searchbots/retrieval_test (需kb_id)',
                    'steps': [{'method': 'POST',
                               'path': '/api/v1/searchbots/retrieval_test',
-                              'base': 'http://rag-func.ibosssoft.com.cn',
+                              'base': 'https://rag.bosssoft.com.cn',
                               'expect': ['200'],
                               'expect_code': 200,
                               'expect_any': [200],

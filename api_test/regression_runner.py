@@ -165,7 +165,7 @@ class RegressionRunner:
                     self.env["dataset_id"] = items[0].get("id", "")
         except Exception:
             pass
-        # RagFlow 数据集
+        # RagFlow 数据集 + 文档
         try:
             code, _, body = send_request("GET", SERVICE_BASE["ragflow"] + "/api/v1/datasets", {
                 "Authorization": f"Bearer {self.ragflow_token}",
@@ -176,6 +176,19 @@ class RegressionRunner:
                 items = data.get("data", [])
                 if items:
                     self.env["rf_dataset_id"] = items[0].get("id", "")
+                    # 预取第一个文档ID (供 documents/{document_id}/... 步骤)
+                    try:
+                        code2, _, body2 = send_request(
+                            "GET", SERVICE_BASE["ragflow"] + f"/api/v1/datasets/{items[0].get('id')}/documents?page=1&page_size=1",
+                            {"Authorization": f"Bearer {self.ragflow_token}", "Accept": "application/json"},
+                            None, 12)
+                        if code2 == 200:
+                            d2 = json.loads(body2)
+                            docs = ((d2.get("data") or {}).get("docs") or []) or []
+                            if docs:
+                                self.env["document_id"] = docs[0].get("id", "")
+                    except Exception:
+                        pass
         except Exception:
             pass
 
