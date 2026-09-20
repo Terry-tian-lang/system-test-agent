@@ -1,0 +1,6 @@
+platform: rag
+base_url: https://rag.bosssoft.com.cn
+smoke:
+  path: /
+  assert: html
+readonly: true

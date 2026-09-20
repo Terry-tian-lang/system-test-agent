@@ -1,0 +1,6 @@
+platform: shujuzhili
+base_url: https://rag-runtime.bosssoft.com.cn
+smoke:
+  path: /
+  assert: html
+readonly: true

@@ -1,0 +1,6 @@
+platform: agent
+base_url: http://ai-func.ibosssoft.com.cn
+smoke:
+  path: /
+  assert: html
+readonly: true
