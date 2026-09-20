@@ -187,20 +187,23 @@ def load_scenarios(use_builtin=True, platform=None):
     here = os.path.dirname(os.path.abspath(__file__))
 
     # 1) 指定平台: 优先独立场景文件
-    if platform in ("agent", "rag", "shujuzhili"):
+    if platform in ("agent", "rag", "shujuzhili", "rag_mainflow"):
         fname = f"scenarios_{platform}.py"
         mod = _load_module(fname[:-3], os.path.join(here, fname))
         if mod and getattr(mod, "SCENARIOS", {}):
             label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)",
-                     "shujuzhili": "数据治理(shujuzhili)"}[platform]
+                     "shujuzhili": "数据治理(shujuzhili)",
+                     "rag_mainflow": "RAG接口主流程回归(按Excel)"}[platform]
             return mod.SCENARIOS, f"{label} 独立场景 {len(mod.SCENARIOS)} 条 <- {fname}"
         # 独立文件缺失: 从全量过滤
         full, fs = load_scenarios(use_builtin=False, platform=None)
         if full:
-            pre = {"agent": "Agent", "rag": "RAG", "shujuzhili": "SJZL"}[platform]
+            pre = {"agent": "Agent", "rag": "RAG", "shujuzhili": "SJZL",
+                   "rag_mainflow": "RAG"}[platform]
             sc = {k: v for k, v in full.items() if k.startswith(pre)}
             label = {"agent": "智能体平台(Agent)", "rag": "知识库平台(RAG)",
-                     "shujuzhili": "数据治理(shujuzhili)"}[platform]
+                     "shujuzhili": "数据治理(shujuzhili)",
+                     "rag_mainflow": "RAG接口主流程回归(按Excel)"}[platform]
             return sc, f"{label} 场景 {len(sc)} 条 (自全量过滤)"
         return {}, "无场景"
 
@@ -576,8 +579,8 @@ def main():
     ap.add_argument("--readonly", action="store_true", default=None, help="full模式只读")
     ap.add_argument("--no-readonly", action="store_true", help="允许写操作(full模式)")
     ap.add_argument("--prefix", default=None, help="按前缀过滤, 如 RAG/Agent")
-    ap.add_argument("--platform", choices=["agent", "rag", "shujuzhili"], default=None,
-                    help="只跑指定平台: agent=智能体Dify | rag=知识库RagFlow | shujuzhili=数据治理(生产/dmwh)")
+    ap.add_argument("--platform", choices=["agent", "rag", "shujuzhili", "rag_mainflow"], default=None,
+                    help="只跑指定平台: agent=智能体Dify | rag=知识库RagFlow | shujuzhili=数据治理(生产/dmwh) | rag_mainflow=RAG接口主流程(按Excel)")
     ap.add_argument("--case", default=None, help="单条用例, 如 Agent-012")
     ap.add_argument("--timeout", type=int, default=None)
     ap.add_argument("--delay", type=float, default=None)
