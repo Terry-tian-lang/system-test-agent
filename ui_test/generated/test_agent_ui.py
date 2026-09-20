@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# 自动生成, 勿手改。生成时间: 2026-09-18 17:35:46  来源: scenarios_agent.py
+# 自动生成, 勿手改。生成时间: 2026-09-20 17:48:05  来源: scenarios_agent.py
 # 平台: agent  冒烟: http://ai-func.ibosssoft.com.cn/
 
 import os
@@ -18,10 +18,8 @@ def test_smoke_agent_home():
         browser = p.chromium.launch(headless=not headed)
         page = browser.new_page()
         try:
-            page.goto('https://rag.bosssoft.com.cn/', timeout=30000, wait_until="domcontentloaded")
-            html = page.content() or ""
-            tag = page.evaluate("() => document.documentElement && document.documentElement.tagName") or ""
-            assert tag or ("<html" in html.lower()), (page.url, tag, html[:240])
+            page.goto('http://ai-func.ibosssoft.com.cn/', timeout=20000, wait_until="domcontentloaded")
+            assert page.locator("html").count() > 0
         except Exception:
             page.screenshot(path=os.path.join(SCREEN_DIR, "smoke_agent.png"))
             raise
