@@ -9,7 +9,9 @@ UI 自动化 conftest: 双环境 (test/prod) 自动切换
 用法:
   python -m pytest ui_test/test_agent_real.py -v --env test --platform agent
   python -m pytest ui_test/test_rag_real.py    -v --env prod --platform rag
-默认 env=test, platform=agent (向后兼容旧命令)
+  PyCharm 直接右键运行文件: 不传 --platform 时会按文件名自动推断
+    test_agent_real.py -> agent / test_rag_real.py -> rag / test_shujuzhili_real.py -> shujuzhili
+默认 env=test, platform=agent (兜底, 显式 --platform/test_agent_real.py 优先)
 
 会话文件按 {env}_{platform} 区分: output/ui_cases/agent_state.json (test/agent) 等。
 """
@@ -123,16 +125,37 @@ def ensure_login(ctx, cfg: dict) -> None:
 def pytest_addoption(parser):
     parser.addoption("--env", action="store", default="test",
                      choices=["test", "prod"], help="运行环境: test(测试) / prod(生产)")
-    parser.addoption("--platform", action="store", default="agent",
-                     help="目标平台: agent / rag / shujuzhili")
+    parser.addoption("--platform", action="store", default=None,
+                     help="目标平台: agent / rag / shujuzhili (缺省按测试文件名自动推断)")
     parser.addoption("--pw-headed", action="store_true", default=False,
                      help="显示浏览器窗口(调试用)")
 
 
+def _infer_platform(config):
+    """未显式传 --platform 时, 按命令行中的测试文件路径推断平台"""
+    if config.option.platform:
+        return config.option.platform
+    for arg in config.args:
+        name = str(arg).lower()
+        # 只对 ui_test 下的文件推断, 避免误判其它路径
+        if "ui_test" not in name:
+            continue
+        base = Path(arg).name.lower()
+        if "shujuzhili" in base or "sjzl" in base:
+            return "shujuzhili"
+        if "rag" in base:
+            return "rag"
+        if "agent" in base:
+            return "agent"
+    return "agent"  # 兜底 (向后兼容)
+
+
 def pytest_configure(config):
+    platform = _infer_platform(config)
+    config.option.platform = platform
     os.environ.setdefault("PW_HEADED", "1" if config.getoption("--pw-headed") else "")
     os.environ["UI_ENV"] = config.getoption("--env")
-    os.environ["UI_PLATFORM"] = config.getoption("--platform")
+    os.environ["UI_PLATFORM"] = platform
 
 
 @pytest.fixture(scope="session")
