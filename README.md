@@ -134,7 +134,7 @@ Excel 还包括 **测试摘要** Sheet，统计优先级分布、模块分布和
 | 4 | **系统识别** | ✅ 已实现 | 黑盒识别目标系统 + 接口梳理（前端 JS 分析 + 多域探测） |
 | 5 | **API 测试用例** | ✅ 已实现 | 第二把 LLM：接口清单 → API 测试用例 Excel |
 | 6 | **接口回归** | ✅ 已实现 | 主流程用例 → 接口调用链，自动执行回归（verify/full 两模式） |
-| 7 | UI 自动化测试 | 🔜 预留 | Playwright UI 自动化 |
+| 7 | UI 自动化测试 | ✅ 已实现 | Playwright UI 自动化 (双环境切换) |
 | 8 | 性能测试 | 🔜 预留 | Locust 性能压测 |
 | 9 | Bug 报告 | 🔜 预留 | 含截图的缺陷报告 |
 | 10 | 测试报告 | 🔜 预留 | 综合测试报告 |
@@ -203,6 +203,47 @@ python api_test/regression_runner.py --mode full --token-ragflow <Key> --prefix 
 > 详细见 `output/回归报告/接口回归缺陷发现_20260915.md`。
 
 详细文档见 `api_test/README.md`。
+
+## 🖥️ UI 自动化（第7步）
+
+Playwright UI 自动化，支持 **测试/生产双环境自动切换**：
+
+### 双环境模型
+
+| 环境 | CAS 登录地址 | 账号 | 平台 |
+|------|-------------|------|------|
+| `test` 测试环境 | `http://cas-func.ibosssoft.com.cn/cas/login` | pbw@163.com | ai-func (Agent) |
+| `prod` 生产环境 | `https://cas.bosssoft.com.cn/cas/login` | tianyu@123.com | rag.bosssoft.com.cn (RAG) |
+
+账号密码在 `.env`（不入库）：`AGENT_UI_EMAIL/PASSWORD`（test）、`RAG_UI_EMAIL/PASSWORD`（prod）。
+平台/CAS 配置在 `ui_test/env_config.py`，可按需扩展。
+
+### 一键执行（自动切换环境）
+
+```bash
+# 测试环境 Agent 平台 (默认)
+python run_ui_test.py
+python run_ui_test.py --env test --platform agent
+
+# 生产环境 RAG 平台
+python run_ui_test.py --env prod --platform rag
+
+# 调试: 显示浏览器窗口 / 只跑单条用例
+python run_ui_test.py --env prod --platform rag --headed
+python run_ui_test.py --env prod --platform rag --cases test_ui_rag_001_home
+```
+
+等价 pytest 命令（可直接加 pytest 参数）：
+```bash
+python -m pytest ui_test/test_agent_real.py -v --env test --platform agent
+python -m pytest ui_test/test_rag_real.py    -v --env prod --platform rag
+```
+
+- 真实用例：`ui_test/test_agent_real.py`（Agent 7 条）、`ui_test/test_rag_real.py`（RAG 5 条）
+- 会话按环境隔离：`output/ui_cases/agent_state.json`、`rag_state_prod.json` 等，失效自动 CAS 重登
+- 截图输出：`output/ui_cases/screenshots/`
+
+> ✅ **已执行验证**：test/Agent **7/7 通过**、prod/RAG **5/5 通过**。
 
 ## ⚙️ 配置说明
 
