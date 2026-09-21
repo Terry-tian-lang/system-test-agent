@@ -37,8 +37,46 @@ except Exception:
 # ==============================================================================
 # ① 配置区 —— 在此处填入你的 Token / 地址 / 模式 (PyCharm 用户改这里!)
 # ==============================================================================
+# ---- 双环境配置 (test=测试环境 / prod=生产环境) ----
+# 环境模型:
+#   test  测试环境: cas-func + pbw@163.com / ai-func(Agent) + rag-func(RAG)
+#   prod  生产环境: cas.bosssoft.com.cn + tianyu@123.com / ai-runtime(Agent) + rag.bosssoft.com.cn(RAG) + rag-runtime(dmwh)
+# 用 --env test|prod 切换; 各环境凭据键不同 (见 ENV_PROFILES.token_keys, 从 .env 读取)
+ENV_PROFILES = {
+    "test": {
+        "name": "测试环境",
+        "cas_base":     "http://cas-func.ibosssoft.com.cn",
+        "dify_base":    "http://ai-func.ibosssoft.com.cn",      # 智能体平台(魔改Dify 测试)
+        "ragflow_base": "http://rag-func.ibosssoft.com.cn",     # 知识库平台(RagFlow 测试)
+        "dmwh_base":    "http://rag-func.ibosssoft.com.cn/dmwh",  # 数据治理/数据库业务(测试 /dmwh API前缀)
+        # 凭据键名 (.env): 分别对应 Dify Bearer / RagFlow Key / dmwh 会话
+        "token_keys": {
+            "dify": "",                       # 测试 Agent token 未知, 用 --token 传入
+            "ragflow": "",                    # 测试 RAG key 未知, 用 --token-ragflow 传入
+            "dmwh_auth": "RAG_DMWH_AUTH",     # 测试环境 dmwh 会话
+            "dmwh_cookie": "RAG_DMWH_COOKIE",
+        },
+    },
+    "prod": {
+        "name": "生产环境",
+        "cas_base":     "https://cas.bosssoft.com.cn",
+        "dify_base":    "https://ai-runtime.bosssoft.com.cn",   # 智能体平台(魔改Dify 生产)
+        "ragflow_base": "https://rag.bosssoft.com.cn",          # 知识库平台(RagFlow 生产)
+        "dmwh_base":    "https://rag-runtime.bosssoft.com.cn/dmwh",  # 数据治理(生产 /dmwh API前缀)
+        "token_keys": {
+            "dify": "",                       # 生产 Agent token 未知, 用 --token 传入
+            "ragflow": "RAGFLOW_TOKEN",       # 生产 RAG API Key (.env)
+            "dmwh_auth": "PROD_DMWH_AUTH",    # 生产 dmwh 会话
+            "dmwh_cookie": "PROD_DMWH_COOKIE",
+        },
+    },
+}
+
 CONFIG = {
-    # ---- 服务基础地址 ----
+    # ---- 运行环境 (test=测试 | prod=生产) ----
+    "env": "test",
+
+    # ---- 服务基础地址 (随 --env 自动切换, 无需手改) ----
     "dify_base":     "http://ai-func.ibosssoft.com.cn",     # 智能体平台(魔改Dify)
     "ragflow_base":  "https://rag.bosssoft.com.cn",          # 知识库平台(RagFlow 生产地址)
     "cas_base":      "http://cas-func.ibosssoft.com.cn",    # CAS 单点登录
@@ -51,6 +89,8 @@ CONFIG = {
     #   DIFY_TOKEN=xxxx
     #   PROD_DMWH_AUTH=xxxx
     #   PROD_DMWH_COOKIE=session=xxxx
+    #   RAG_DMWH_AUTH=xxxx        (测试环境 dmwh)
+    #   RAG_DMWH_COOKIE=session=xxxx
     "dify_token":     "",
     "ragflow_token":  "",
     "dmwh_auth":      "",    # 数据治理页面会话 Authorization
@@ -87,6 +127,37 @@ def _load_dotenv():
 
 
 _load_dotenv()
+
+
+def apply_env(env_name):
+    """按环境名切换所有服务地址 (test=测试 / prod=生产)"""
+    if env_name not in ENV_PROFILES:
+        raise SystemExit(f"未知环境: {env_name}, 可用: {list(ENV_PROFILES)}")
+    prof = ENV_PROFILES[env_name]
+    CONFIG["env"] = env_name
+    CONFIG["dify_base"] = prof["dify_base"]
+    CONFIG["ragflow_base"] = prof["ragflow_base"]
+    CONFIG["cas_base"] = prof["cas_base"]
+    CONFIG["dmwh_base"] = prof["dmwh_base"]
+    return prof
+
+
+def _load_env_creds(prof):
+    """按环境 token_keys 从 .env 读取凭据 (命令行传入的优先, 不入库)"""
+    tk = prof["token_keys"]
+    if not CONFIG.get("dify_token") and tk.get("dify") and os.environ.get(tk["dify"]):
+        CONFIG["dify_token"] = os.environ[tk["dify"]].strip()
+    if not CONFIG.get("ragflow_token") and tk.get("ragflow") and os.environ.get(tk["ragflow"]):
+        CONFIG["ragflow_token"] = os.environ[tk["ragflow"]].strip()
+    if not CONFIG.get("dmwh_auth") and tk.get("dmwh_auth") and os.environ.get(tk["dmwh_auth"]):
+        CONFIG["dmwh_auth"] = os.environ[tk["dmwh_auth"]].strip()
+    if not CONFIG.get("dmwh_cookie") and tk.get("dmwh_cookie") and os.environ.get(tk["dmwh_cookie"]):
+        CONFIG["dmwh_cookie"] = os.environ[tk["dmwh_cookie"]].strip()
+    return CONFIG
+
+
+# 默认按 CONFIG["env"] 应用一次 (命令行 --env 会再次覆盖)
+apply_env(CONFIG.get("env", "test"))
 
 # RagFlow 业务 code 语义: 详细判定见 _judge_ragflow
 RESULT_STYLE = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️", "BLOCKED": "🚫", "ERROR": "💥"}
@@ -539,7 +610,8 @@ def gen_html_report(results, cfg, source):
  pre{{background:#0d1117;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto}}
 </style></head><body>
 <h1>🔁 接口自动化回归报告</h1>
-<p class="meta">执行时间: {now} &nbsp;|&nbsp; 模式: {cfg['mode']}{'(只读)' if cfg['mode']=='full' and cfg['readonly'] else ''}
+<p class="meta">执行时间: {now} &nbsp;|&nbsp; 环境: {ENV_PROFILES.get(cfg['env'], {}).get('name', cfg['env'])}({cfg['env']})
+ &nbsp;|&nbsp; 模式: {cfg['mode']}{'(只读)' if cfg['mode']=='full' and cfg['readonly'] else ''}
  &nbsp;|&nbsp; 场景: {source} &nbsp;|&nbsp; 用例: {total}</p>
 <div class="cards">
  <div class="card pass"><b>{vc.get('PASS',0)}</b><small>✅ 通过</small></div>
@@ -573,6 +645,8 @@ def gen_html_report(results, cfg, source):
 # ==============================================================================
 def main():
     ap = argparse.ArgumentParser(description="接口自动化回归(单文件 PyCharm版)")
+    ap.add_argument("--env", choices=["test", "prod"], default=None,
+                    help="运行环境: test=测试环境 / prod=生产环境 (默认 test, 自动切换服务地址+凭据键)")
     ap.add_argument("--mode", choices=["verify", "full"], default=None)
     ap.add_argument("--token", dest="dify_token", default=None, help="Dify Bearer Token")
     ap.add_argument("--token-ragflow", dest="ragflow_token", default=None, help="RagFlow API Key")
@@ -586,21 +660,19 @@ def main():
     ap.add_argument("--delay", type=float, default=None)
     args = ap.parse_args()
 
+    # 环境切换 (优先命令行 --env, 否则保持默认 test)
+    if args.env:
+        prof = apply_env(args.env)
+    else:
+        prof = ENV_PROFILES[CONFIG.get("env", "test")]
+
     # 命令行覆盖 CONFIG
     for k in ("mode", "dify_token", "ragflow_token", "prefix", "case", "timeout", "delay"):
         v = getattr(args, k)
         if v not in (None, ""):
             CONFIG[k] = v
-    # 环境变量兜底 (命令行 > .env环境变量 > CONFIG内填写的值)
-    if not CONFIG.get("dify_token") and os.environ.get("DIFY_TOKEN"):
-        CONFIG["dify_token"] = os.environ["DIFY_TOKEN"].strip()
-    if not CONFIG.get("ragflow_token") and os.environ.get("RAGFLOW_TOKEN"):
-        CONFIG["ragflow_token"] = os.environ["RAGFLOW_TOKEN"].strip()
-    # 数据治理(生产): PROD_DMWH_AUTH / PROD_DMWH_COOKIE
-    if not CONFIG.get("dmwh_auth") and os.environ.get("PROD_DMWH_AUTH"):
-        CONFIG["dmwh_auth"] = os.environ["PROD_DMWH_AUTH"].strip()
-    if not CONFIG.get("dmwh_cookie") and os.environ.get("PROD_DMWH_COOKIE"):
-        CONFIG["dmwh_cookie"] = os.environ["PROD_DMWH_COOKIE"].strip()
+    # 按当前环境从 .env 读取凭据 (命令行 > .env 对应键 > CONFIG 内填写的值)
+    _load_env_creds(prof)
     if args.platform:
         CONFIG["platform"] = args.platform
     if args.readonly:
@@ -611,8 +683,9 @@ def main():
 
     scenarios, source = load_scenarios(CONFIG["use_builtin"], platform=CONFIG.get("platform"))
     print("=" * 70)
+    env_name = ENV_PROFILES[CONFIG["env"]]["name"] if CONFIG["env"] in ENV_PROFILES else CONFIG["env"]
     plat = f"平台: {CONFIG.get('platform', '全部(Agent+RAG+shujuzhili)')}  |  "
-    print(f" 接口自动化回归  |  {plat}模式: {mode}{'(只读)' if mode=='full' and CONFIG['readonly'] else ''}")
+    print(f" 接口自动化回归  |  环境: {env_name}({CONFIG['env']})  |  {plat}模式: {mode}{'(只读)' if mode=='full' and CONFIG['readonly'] else ''}")
     print(f" 场景: {source}")
     print(f" Dify  : {CONFIG['dify_base']}  Token {'已提供' if CONFIG['dify_token'] else '未提供'}")
     print(f" RagFlow: {CONFIG['ragflow_base']}  Key  {'已提供' if CONFIG['ragflow_token'] else '未提供'}")

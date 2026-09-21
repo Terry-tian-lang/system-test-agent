@@ -172,24 +172,35 @@ python main.py api-cases -n 10 -p "知识库平台" # 前10个接口快速验证
 
 ### 🔁 接口自动化回归（第6步）
 
-把主流程测试用例 Excel（UI 步骤）翻译成接口调用链并自动执行：
+把主流程测试用例 Excel（UI 步骤）翻译成接口调用链并自动执行，**支持双环境切换**：
 
 ```bash
 # verify 模式: 无需Token, 验证131条主流程用例对应的接口路由可达性 (~1分钟)
-python api_test/regression_runner.py --mode verify
+python api_test/run_rag_test.py --mode verify                 # 默认生产环境 rag.bosssoft.com.cn
+python api_test/run_agent_test.py --mode verify               # 默认测试环境 ai-func
+python api_test/run_rag_test.py --mode verify --env test      # 切到测试环境 rag-func
+python api_test/run_shujuzhili_test.py --mode verify          # 生产数据治理(rag-runtime)
 
 # full 模式: 携带真实Token, 执行业务回归
 #  Dify(ai-func) 用 --token; RagFlow(rag-func) 用 --token-ragflow (两域凭证分离)
 python api_test/regression_runner.py --mode full --token <DifyToken> --token-ragflow <RagFlowKey>
+python api_test/run_rag_test.py --mode full --env prod --readonly   # 生产 RAG 业务回归(只读)
 
 # 单条用例 / 按平台过滤(如仅RAG侧)
 python api_test/regression_runner.py --mode verify --case Agent-012
 python api_test/regression_runner.py --mode full --token-ragflow <Key> --prefix RAG --readonly
 ```
 
+**接口双环境模型**（`api_test/interface_auto_test.py` 顶部 `ENV_PROFILES`）：
+
+| 环境 | Agent(Dify) | RAG(RagFlow) | 数据治理(dmwh) | 凭据键(.env) |
+|------|------------|--------------|----------------|--------------|
+| `test` 测试 | `http://ai-func.ibosssoft.com.cn` | `http://rag-func.ibosssoft.com.cn` | `http://rag-func.../dmwh` | RAG_DMWH_AUTH/COOKIE |
+| `prod` 生产 | `https://ai-runtime.bosssoft.com.cn` | `https://rag.bosssoft.com.cn` | `https://rag-runtime.../dmwh` | RAGFLOW_TOKEN / PROD_DMWH_AUTH/COOKIE |
+
 - 场景映射表：`api_test/regression_scenarios.py`（131 条 → 139 接口步骤）
-- 执行器：`api_test/regression_runner.py`
-- 报告输出：`output/回归报告/接口回归报告_<时间戳>.xlsx/.md`
+- 执行器：`api_test/interface_auto_test.py`（支持 `--env test|prod` 自动切换）
+- 报告输出：`output/回归报告/接口回归报告_<时间戳>.xlsx/.md`（含环境标识）
 - 详细文档见 `api_test/REGRESSION_README.md`
 
 > ✅ **真实回归已执行**（2026-09-15，携带有效 Token，`--readonly` 安全模式）：
@@ -210,9 +221,9 @@ Playwright UI 自动化，支持 **测试/生产双环境自动切换**：
 
 ### 双环境模型
 
-| 环境 | CAS 登录地址 | 账号 | 平台 |
-|------|-------------|------|------|
-| `test` 测试环境 | `http://cas-func.ibosssoft.com.cn/cas/login` | pbw@163.com | ai-func (Agent) |
+| 环境 | CAS 登录地址 | 账号 | 平台入口 |
+|------|-------------|------|---------|
+| `test` 测试环境 | `http://cas-func.ibosssoft.com.cn/cas/login` | pbw@163.com | ai-func (Agent) / rag-func (RAG) |
 | `prod` 生产环境 | `https://cas.bosssoft.com.cn/cas/login` | tianyu@123.com | rag.bosssoft.com.cn (RAG) |
 
 账号密码在 `.env`（不入库）：`AGENT_UI_EMAIL/PASSWORD`（test）、`RAG_UI_EMAIL/PASSWORD`（prod）。
@@ -224,6 +235,9 @@ Playwright UI 自动化，支持 **测试/生产双环境自动切换**：
 # 测试环境 Agent 平台 (默认)
 python run_ui_test.py
 python run_ui_test.py --env test --platform agent
+
+# 测试环境 RAG 平台
+python run_ui_test.py --env test --platform rag
 
 # 生产环境 RAG 平台
 python run_ui_test.py --env prod --platform rag
@@ -237,13 +251,14 @@ python run_ui_test.py --env prod --platform rag --cases test_ui_rag_001_home
 ```bash
 python -m pytest ui_test/test_agent_real.py -v --env test --platform agent
 python -m pytest ui_test/test_rag_real.py    -v --env prod --platform rag
+python -m pytest ui_test/test_rag_real.py    -v --env test --platform rag
 ```
 
 - 真实用例：`ui_test/test_agent_real.py`（Agent 7 条）、`ui_test/test_rag_real.py`（RAG 5 条）
-- 会话按环境隔离：`output/ui_cases/agent_state.json`、`rag_state_prod.json` 等，失效自动 CAS 重登
+- 会话按环境隔离：`output/ui_cases/agent_state.json`、`rag_state_test.json`、`rag_state_prod.json` 等，失效自动 CAS 重登
 - 截图输出：`output/ui_cases/screenshots/`
 
-> ✅ **已执行验证**：test/Agent **7/7 通过**、prod/RAG **5/5 通过**。
+> ✅ **已执行验证**：test/Agent **7/7**、test/RAG **5/5**、prod/RAG **5/5** 全部通过。
 
 ## ⚙️ 配置说明
 
